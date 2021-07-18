@@ -29,6 +29,13 @@ void setup() {
   pinMode(ENABLE3V3D, OUTPUT);
   pinMode(ENABLE5VD, OUTPUT);
   pinMode(STARTCHARGING, OUTPUT);
+
+  digitalWrite(ENABLE5VD, LOW);
+  digitalWrite(ENABLE3V3D, LOW);
+  digitalWrite(ENABLE12V, LOW);
+  digitalWrite(STARTCHARGING, LOW);
+
+  delay(10000);
 }
 
 void loop() {
@@ -38,7 +45,8 @@ void loop() {
   enableRouterSpeakerPower();
   enable5VdigitalPower();
   enable3V3digitalPower();
-  startCharging(true);
+  digitalWrite(SYSGOOD, HIGH);
+  //startCharging(true);
 }
 
 //functions
