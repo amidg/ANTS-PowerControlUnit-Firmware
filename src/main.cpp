@@ -1,4 +1,6 @@
 #include "Arduino.h"
+#include "ros.h"
+#include "std_msgs/String.h"
 
 #define SYSGOOD 13
 #define ENABLE12V 14 
@@ -20,7 +22,24 @@ void enableRouterSpeakerPower();
 void enable5VdigitalPower(void);
 void enable3V3digitalPower(void);
 
-//main functions
+//ROS DEFINITIONS: ============================================================================
+#define ESP32
+const char* ssid     = "AutoBot1_2G";
+const char* password = "mse2021cap";
+IPAddress ip(192, 168, 1, 3);
+IPAddress server(192,168,100,100);
+const uint16_t serverPort = 11413; //port 1141x, where x =1 for DCU1, 2 for DCU2, and 3 for PCU
+ros::NodeHandle nh;
+// Make a chatter publisher
+std_msgs::String str_msg;
+ros::Publisher chatter("pcu", &str_msg);
+
+// Be polite and say hello
+char hello[13] = "PCU IS HERE";
+uint16_t period = 20;
+uint32_t last_time = 0;
+
+// MAIN FUNCTION ==============================================================================
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(9600);
@@ -36,17 +55,58 @@ void setup() {
   digitalWrite(STARTCHARGING, LOW);
 
   delay(10000);
+
+  //ROS PART --------------------------------------------------------------------------------------------------
+  WiFi.begin(ssid, password);
+
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+
+  Serial.println("");
+  Serial.println("WiFi connected");
+  Serial.println("IP address: ");
+  Serial.println(WiFi.localIP());
+
+  // Set the connection to rosserial socket server
+  nh.getHardware()->setConnection(server, serverPort);
+  nh.initNode();
+
+  // Another way to get IP
+  Serial.print("IP = ");
+  Serial.println(nh.getHardware()->getLocalIP());
+
+  // Start to be polite
+  nh.advertise(chatter);
 }
 
+// LOOP FUNCTION ==========================================================================
 void loop() {
   // put your main code here, to run repeatedly:
 
   //test codes -> uncomment certain function to use is separately
-  enableRouterSpeakerPower();
-  enable5VdigitalPower();
-  enable3V3digitalPower();
-  digitalWrite(SYSGOOD, HIGH);
+  //enableRouterSpeakerPower();
+  //enable5VdigitalPower();
+  //enable3V3digitalPower();
+  //digitalWrite(SYSGOOD, HIGH);
   //startCharging(true);
+
+  if(millis() - last_time >= period)
+  {
+    last_time = millis();
+    if (nh.connected())
+    {
+      Serial.println("Connected");
+      // Say hello
+      str_msg.data = hello;
+      chatter.publish( &str_msg );
+    } else {
+      Serial.println("Not Connected");
+    }
+  }
+  nh.spinOnce();
+  delay(1);
 }
 
 //functions
